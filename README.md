@@ -1,6 +1,6 @@
-# Marlattice documentation site (draft)
+# Marlattice
 
-A PettingZoo-inspired, Sphinx-based API documentation site generated from the team's **proposed** Environment API contract.
+A PettingZoo-inspired, Sphinx-based API document generated from the team's **proposed** Environment API contract.
 
 ## Files
 
@@ -18,7 +18,7 @@ From the folder containing this README:
 ```bash
 python -m pip install -r requirements-docs.txt
 python -m sphinx -b html docs docs/_build/html
-open docs/_build/html/index.html      # macOS
+open docs/_build/html/index.html
 ```
 
 The Markdown pages use MyST. The reference page uses Sphinx's Python-domain directives, which provide class, attribute, and method formatting without requiring an implemented Python module.
