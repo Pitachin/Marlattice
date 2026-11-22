@@ -1,8 +1,8 @@
 
 # Marlattice Environment API
 
-**Version:** 0.1.0-draft  
-**Status:** Proposed — Pending Team Review  
+**Version:** 0.1.0-draft
+**Status:** Proposed — Pending Team Review
 **API Standard:** PettingZoo Parallel API
 ## Overview
 
@@ -45,7 +45,7 @@ The proposed default configuration is:
 |---|---|---|
 | `grid_size` | 10 | Width and height of the square grid |
 | `num_agents` | 3 | Number of robots |
-| `max_steps` | 200 | Maximum simulation ticks per episode |
+| `max_steps` | 200 | Maximum simulation ticks per episode. Must be an integer of at least 1. |
 | `reward_mode` | `"individual"` | Reward allocation strategy |
 
 The initial implementation should support 2–5 robots, with two-agent configurations available for testing.
@@ -203,6 +203,8 @@ A discrete, multi-agent warehouse environment implementing the PettingZoo Parall
 
 The environment maintains robot positions, destinations, obstacles, rewards, and episode progress.
 
+The constructor requires `max_steps` to be an integer of at least 1 and raises `ValueError` otherwise. This limit applies to default and explicit scenarios.
+
 All active robots select actions for the same simulation tick before the environment applies a state transition.
 
 ### WarehouseEnv.possible_agents
@@ -277,7 +279,7 @@ All positions use `(row, column)` coordinates.
 
 The top-left corner is `(0, 0)`.
 
-The returned action space must remain consistent for a given agent within the environment instance.
+For a given agent, repeated calls to `action_space(agent)` must return the same space object throughout the lifetime of the environment instance, including across resets.
 
 Actions outside the declared space are invalid inputs and should be rejected.
 
@@ -352,7 +354,7 @@ observation = {
 
 `obstacle_map` and `agent_map` are binary NumPy arrays of shape `(10, 10)` with dtype `float32`.
 
-The observation space remains fixed for the lifetime of the environment instance.
+For a given agent, repeated calls to `observation_space(agent)` must return the same space object throughout the lifetime of the environment instance, including across resets.
 
 Support for partial observations may be introduced in future versions.
 
@@ -375,11 +377,17 @@ Resets the warehouse environment and begins a new episode.
 
 **seed**
 
-An optional random seed used for reproducible environment initialization.
+An optional random seed accepted for reproducibility. In the MVP, changing the seed does not change the fixed default layout or an explicitly supplied scenario. To train or evaluate on a different map, pass a different scenario through `options`.
 
 **options**
 
-Optional reset configuration. The supported keys are not yet finalized.
+Pass an explicit scenario as `options={"scenario": {"obstacles": ..., "starts": ..., "goals": ...}}`. `obstacles` is a list of cells. `starts` and `goals` are mappings keyed by robot ID and must each contain exactly the IDs in `possible_agents`. All cells are specified as integer `[row, col]` pairs. Ignore unrecognized top-level keys in `options`. If `options` is omitted, is `None`, or does not contain `scenario`, use the default layout. If the `scenario` key is present, validate its value as an explicit scenario and raise `ValueError` if it is invalid.
+
+### Default Scenario
+
+If no explicit scenario is supplied, reset uses a fixed, obstacle-free layout determined by the grid size and robot count. Traverse the grid row by row, alternating left-to-right and right-to-left so consecutive cells are adjacent. Assign each robot a disjoint pair of consecutive cells in `possible_agents` order. The first cell of each pair is the start and the second is its goal.
+
+This layout is independent of the seed. All robots can reach their goals in one simultaneous tick because their goal cells are initially empty and distinct. Configurations with fewer than two cells per robot raise `ValueError` when requesting this default layout. Explicit scenarios follow the validation rules below.
 
 ### Returns
 
@@ -400,13 +408,13 @@ Calling `reset()` must:
 3. Assign valid destinations.
 4. Initialize the obstacle map.
 5. Reset the simulation tick counter.
-6. Reset goal completion status.
+6. Set each robot's completion status based on whether it starts at its goal.
 7. Restore the active agent list.
 8. Return initial observations and infos.
 
-Starting positions must be distinct and free of obstacles.
+`grid_size` must be at least `2`. Starting cells must be distinct, and goal cells must be distinct. All scenario cells must be inside the grid. Starts and goals must be free of obstacles. Each goal must be reachable from its robot's start through the static map.
 
-Destinations must be valid and reachable under the selected scenario configuration.
+A robot that starts at its own goal is marked as complete during reset and receives no arrival reward. At least one robot must start away from its own goal. Invalid configurations or explicit scenarios raise `ValueError`.
 
 Identical seeds and environment configurations must reproduce identical initial scenarios.
 
@@ -423,6 +431,8 @@ step(
 ```
 
 Advances the warehouse environment by one simulation tick.
+
+Call `step()` only during an active episode. A call before the first successful `reset()` or after termination or truncation raises `RuntimeError` before action validation. This applies even to `step({})`. The simulation state and tick counter remain unchanged.
 
 All agent actions are evaluated simultaneously.
 
@@ -442,7 +452,9 @@ Example:
 }
 ```
 
-The action dictionary must contain one valid action for every active agent.
+The keys in `actions` must match `env.agents` exactly, and every value must belong to `Discrete(5)`. Validate the full action dictionary before updating the simulation. Missing IDs, extra IDs, or invalid action values raise `ValueError` and leave the simulation state and tick counter unchanged.
+
+A valid movement action rejected by the collision rules still consumes a simulation tick and sets `infos[agent]["collision_attempt"] = True`.
 
 ### Returns
 
@@ -543,13 +555,13 @@ Proposed base reward events:
 
 | Event | Reward |
 |---|---|
-| Unfinished simulation tick | -0.01 |
+| Robot unfinished at the start of the tick | -0.01 |
 | First arrival at assigned goal | +1.00 |
 | Invalid movement or collision attempt | -0.10 |
 
-The goal completion reward is granted only once per agent.
+Apply the step penalty based on the robot's completion status at the start of the tick. Reward events are additive. A robot that moves into its goal for the first time receives `-0.01 + 1.00 = 0.99` for that tick. A rejected movement adds a `-0.10` penalty.
 
-Completed robots remain stationary and receive no further step penalty.
+A robot that was already complete at the start of the tick still requires a valid action. The environment treats its action as `Stay`, assigns an individual base reward of `0`, and sets `collision_attempt` to `False`. In team mode, the robot still receives the same mean reward as the other active robots.
 
 ### Team Reward
 
@@ -608,6 +620,7 @@ In v0.1, agents are not removed individually.
 Robots that reach their goals remain stationary and active until the episode ends.
 
 On the final transition, `step()` still returns the rewards, status flags, infos, and resulting observations for agents active at the beginning of that step.
+`reached_goal` indicates individual task completion. `terminations` and `truncations` describe the outcome of the entire episode. After a time-limit truncation, the training loop can use the final observation returned by `step()` for value bootstrapping. Advantage recursion stops at the episode boundary.
 
 After the final transition:
 
@@ -633,7 +646,11 @@ The precise rendering modes are pending implementation.
 
 The web frontend is not required to use PettingZoo's `render()` method directly.
 
-Marlattice may expose a separate serializable simulation snapshot for frontend visualization.
+## Frontend Snapshot
+
+Call `env.snapshot()` to read the current state as a JSON-serializable dictionary after a successful `reset()` or `step()`. Calling it before the first successful reset raises `RuntimeError`. The method does not advance the simulation. Each call returns an independent copy, so later steps and edits to a returned snapshot cannot change previously recorded state or the environment. It contains `tick`, `grid_size`, `obstacles`, and a `robots` mapping keyed by robot ID. Each robot entry contains `position`, `goal`, and `reached_goal`. Positions, goals, and obstacle cells are integer `[row, col]` pairs.
+
+`tick` is `0` immediately after reset. The final snapshot includes every robot after `env.agents` is cleared. When sending a snapshot to the frontend, the runner also provides an `episode_status` value. Use `"running"` after reset and during an active episode, `"terminated"` when the final step reports termination for all robots, and `"truncated"` when it reports truncation for all robots. The runner derives this value from `step()` before sending the final snapshot. The transport is pending frontend review.
 
 ---
 
@@ -702,6 +719,16 @@ Additional Marlattice-specific tests must verify:
 - Deterministic initialization with a fixed seed
 
 Passing PettingZoo tests does not replace application-specific behavioral testing.
+
+---
+
+## Benchmark Scenarios
+
+Use fixed scenarios for benchmark comparisons. Validate each scenario by resetting to its specified initial state and replaying a joint action sequence through `WarehouseEnv.step()`. The replay must end in successful termination within `max_steps`.
+
+Joint breadth-first search (BFS) can generate a candidate sequence for small scenarios. Coordinated A* can also generate a candidate sequence. A joint search must follow the environment's simultaneous movement and collision rules, including keeping completed robots stationary. Apply the same replay check to sequences from either planner.
+
+Routine resets check each robot's reachability through the static map. Benchmark replay verifies that all robots can reach their goals together within the step limit.
 
 ---
 
