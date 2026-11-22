@@ -2,6 +2,11 @@
 
 A PettingZoo-inspired, Sphinx-based API document generated from the team's **proposed** Environment API contract.
 
+## API Document
+
+See following
+[Marlattice](https://pitachin.github.io/Marlattice/)
+
 ## Files
 
 - `docs/environment-api.md` — the complete uploaded v0.1 API proposal (preserved).
