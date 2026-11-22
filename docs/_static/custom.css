@@ -1,0 +1,6 @@
+/* Small Sphinx visual refinements, intentionally compatible with PyData's palette. */
+.bd-content h1 { font-weight: 750; letter-spacing: -.028em; }
+.bd-content h2 { border-bottom: 1px solid var(--pst-color-border); padding-bottom: .4rem; }
+.bd-content .py.class > dt { border-top: 5px solid #195c72; background: var(--pst-color-surface); padding: 1rem .8rem; }
+.bd-content .py.attribute > dt, .bd-content .py.method > dt { border-top: 3px solid #195c72; background: var(--pst-color-surface); padding: .65rem .8rem; }
+.bd-content table { font-size: .94rem; }
