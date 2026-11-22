@@ -474,7 +474,7 @@ For the initial version, each agent's info includes:
 }
 ```
 
-This flag becomes `True` when an agent attempts a movement rejected due to a robot conflict.
+This flag becomes `True` whenever an agent's movement action is rejected due to any collision or invalid move (including grid boundaries, static obstacles, or conflicts with other robots).
 
 ### State Transition
 
@@ -523,7 +523,7 @@ Direct position swaps between two robots are not allowed.
 
 ### Invalid Movement
 
-A rejected movement leaves the robot in its original position.
+A rejected movement leaves the robot in its original position, triggers `infos[agent]["collision_attempt"] = True`, and incurs the collision-attempt penalty (`-0.10`).
 
 More permissive simultaneous movement rules may be introduced in later versions.
 
