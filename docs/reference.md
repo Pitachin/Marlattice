@@ -1,6 +1,6 @@
 # Python API Reference
 
-**Version:** `0.1.0-draft` · **Status:** Proposed — Pending Team Review
+**Version:** `0.1.0` · **Status:** Proposed — Pending Team Review
 
 This page documents the **planned** Python interface for Marlattice's warehouse environment. These are Sphinx Python-domain declarations, **not automatically extracted from an implemented module**. When `WarehouseEnv` exists, replace the manual declarations with `autoclass` / `automethod` directives as appropriate.
 
