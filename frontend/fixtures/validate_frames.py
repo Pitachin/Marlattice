@@ -87,25 +87,50 @@ def validate(frame):
 
     status = frame.get("episode_status")
     all_done = all(r.get("reached_goal") is True for r in robots.values())
+
     if status == "terminated" and not all_done:
-        err("terminated requires every robot to have reached_goal")
-    if status == "running" and all_done:
-        err("running but every robot has reached its goal")
-    if status == "truncated" and tick != max_steps:
-        err("truncated requires tick == max_steps")
+        err("terminated requires every robot to have reached its goal")
+
+    if status == "running":
+        if all_done:
+            err("running but every robot has reached its goal")
+        if isinstance(tick, int) and isinstance(max_steps, int) and tick >= max_steps:
+            err("running requires tick < max_steps")
+
+    if status == "truncated":
+        if tick != max_steps:
+            err("truncated requires tick == max_steps")
+        if all_done:
+            err("truncated requires at least one unfinished robot")
 
     last = frame.get("last_step")
     if tick == 0 and last is not None:
         err("last_step must be null at tick 0")
-    if last is not None:
-        for key in ("actions", "rewards", "collision_attempt"):
-            if set(last.get(key, {})) != set(robots):
-                err(f"last_step.{key} must have exactly the robot IDs")
-        for rid, action in last.get("actions", {}).items():
-            if action not in ACTIONS:
-                err(f"last_step.actions.{rid} must be in Discrete(5)")
 
+    if last is not None:
+        if not isinstance(last, dict):
+            err("last_step must be an object")
+        else:
+            for key in ("actions", "rewards", "collision_attempt"):
+                values = last.get(key)
+                if not isinstance(values, dict):
+                    err(f"last_step.{key} must be an object")
+                    continue
+
+                if set(values) != set(robots):
+                    err(f"last_step.{key} must have exactly the robot IDs")
+
+                if key == "actions":
+                    for rid, action in values.items():
+                        if type(action) is not int or action not in ACTIONS:
+                            err(f"last_step.actions.{rid} must be in Discrete(5)")
+
+                if key == "collision_attempt":
+                    for rid, collision in values.items():
+                        if not isinstance(collision, bool):
+                            err(f"last_step.collision_attempt.{rid} must be a boolean")
     return errors
+
 
 
 def main(paths):
