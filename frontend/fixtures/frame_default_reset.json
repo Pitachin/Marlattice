@@ -1,0 +1,15 @@
+{
+  "episode_status": "running",
+  "max_steps": 200,
+  "snapshot": {
+    "tick": 0,
+    "grid_size": 10,
+    "obstacles": [],
+    "robots": {
+      "robot_0": { "position": [0, 0], "goal": [0, 1], "reached_goal": false },
+      "robot_1": { "position": [0, 2], "goal": [0, 3], "reached_goal": false },
+      "robot_2": { "position": [0, 4], "goal": [0, 5], "reached_goal": false }
+    }
+  },
+  "last_step": null
+}
