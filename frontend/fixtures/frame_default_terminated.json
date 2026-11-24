@@ -1,0 +1,19 @@
+{
+  "episode_status": "terminated",
+  "max_steps": 200,
+  "snapshot": {
+    "tick": 1,
+    "grid_size": 10,
+    "obstacles": [],
+    "robots": {
+      "robot_0": { "position": [0, 1], "goal": [0, 1], "reached_goal": true },
+      "robot_1": { "position": [0, 3], "goal": [0, 3], "reached_goal": true },
+      "robot_2": { "position": [0, 5], "goal": [0, 5], "reached_goal": true }
+    }
+  },
+  "last_step": {
+    "actions": { "robot_0": 4, "robot_1": 4, "robot_2": 4 },
+    "rewards": { "robot_0": 0.99, "robot_1": 0.99, "robot_2": 0.99 },
+    "collision_attempt": { "robot_0": false, "robot_1": false, "robot_2": false }
+  }
+}
