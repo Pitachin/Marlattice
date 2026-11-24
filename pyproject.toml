@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "Marlattice"
+version = "0.1.0.dev0"
+dependencies = [
+  "gymnasium",
+  "numpy",
+  "pettingzoo>=1.26",
+]
+requires-python = ">=3.13"
+authors = [
+  {name = "Jiahao Lin", email = "jackson.lin@mail.utoronto.ca"},
+  {name = "Steven Qiu", email = "steveny.qiu@mail.utorinto.ca"},
+  {name = "Leo Wang"},
+]
+description = "Marlattice is a proposed extensible multi-agent simulation and reinforcement learning benchmarking platform."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+keywords = ["multi-agent", "reinforcement learning", "simulation"]
+classifiers = ["Programming Language :: Python"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Documentation = "https://pitachin.github.io/Marlattice/"
+Repository = "https://github.com/Pitachin/Marlattice"
+Issues = "https://github.com/Pitachin/Marlattice/issues"
